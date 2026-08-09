@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node build-vercel.mjs",
+  "buildCommand": "echo 'no build needed - api/handler.js and api/_lib are a pre-built, committed bundle'",
   "functions": {
     "api/handler.js": {
       "maxDuration": 30

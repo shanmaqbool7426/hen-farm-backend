@@ -3,8 +3,11 @@ node_modules
 
 # compiled output
 dist
-api/_lib
 *.tsbuildinfo
+# api/_lib is committed on purpose (see api/handler.js) - Vercel's build
+# command has repeatedly failed to actually run for this project, so the
+# working bundle needs to already exist in the repo, not be generated fresh
+# on every deploy.
 
 # secrets - real DB credentials live here, never commit
 .env

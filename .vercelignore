@@ -1,0 +1,29 @@
+# The deployed function (api/handler.js + api/_lib/*) is a pre-built,
+# self-contained bundle committed directly to the repo - Vercel's own build
+# command has repeatedly failed to run reliably for this project, and Vercel
+# also kept auto-discovering _vercel-src/[...path].ts as its own (unbundled,
+# broken) function despite the underscore prefix. Excluding all of this from
+# the deployment entirely removes any chance of that happening again - none
+# of it is needed at runtime anyway, since the bundle has everything inlined.
+_vercel-src
+build-vercel.mjs
+build.mjs
+src
+dist
+*.md
+*.txt
+add-buyer-ali.js
+add-seller-shan.js
+create-admin.mjs
+hash-passwords.mjs
+migrate-roles.mjs
+seed-demo.mjs
+seed-sellers.js
+setup-test-data.js
+setup-users.js
+test-api.mjs
+test-connection.mjs
+test-p2p-marketplace.mjs
+tmp-test-mongo.js
+update-seller-tiers.mjs
+.replit-artifact
