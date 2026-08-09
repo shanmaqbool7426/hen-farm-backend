@@ -1,1 +1,3 @@
-{}
+{
+  "buildCommand": "echo 'no build needed - server.mjs is a pre-built, committed bundle'"
+}
