@@ -1,0 +1,74 @@
+═══════════════════════════════════════════════════════════
+  ADD SELLER: SHAN
+═══════════════════════════════════════════════════════════
+
+OPTION 1: Run this command in terminal
+─────────────────────────────────────────────────────────
+
+cd d:\personal-projects\hen-and-egg-app\artifacts\api-server
+
+mongosh "mongodb+srv://auto-wheel-apps:AutoWheels123@auto-wheels.m4wrf.mongodb.net/henform" add-seller-shan.js
+
+
+OPTION 2: Copy-paste in MongoDB Compass
+─────────────────────────────────────────────────────────
+
+1. Open MongoDB Compass
+2. Connect to: mongodb+srv://auto-wheel-apps:AutoWheels123@auto-wheels.m4wrf.mongodb.net/henform
+3. Click "Mongosh" tab at bottom
+4. Copy the script from "add-seller-shan.js" file
+5. Paste and press Enter
+
+
+SELLER DETAILS
+─────────────────────────────────────────────────────────
+
+Name:           Shan
+Email:          shanmaqbool12345@gmail.com
+Password:       Shan7426@
+Phone:          03069829158
+EasyPaisa:      03069829158
+JazzCash:       03069829158
+WhatsApp:       +923069829158
+Hens:           10,000
+Price/Hen:      Rs 900
+Verified:       Yes ✓
+Rating:         5.0 ⭐
+
+
+AFTER ADDING
+─────────────────────────────────────────────────────────
+
+✓ Shan will appear in Marketplace with 10,000 hens
+✓ Users can buy hens from Shan
+✓ Payment details will show EasyPaisa/JazzCash
+✓ Shan can login and approve orders
+
+
+TEST IN APP
+─────────────────────────────────────────────────────────
+
+1. Open mobile app
+2. Go to Marketplace tab
+3. See "Shan" with 10,000 hens
+4. Click "Buy Hens"
+5. See payment details
+6. Create order
+7. Contact Shan on WhatsApp: +923069829158
+
+
+LOGIN AS SHAN (SELLER)
+─────────────────────────────────────────────────────────
+
+Email:     shanmaqbool12345@gmail.com
+Password:  Shan7426@
+
+After login, Shan can:
+- See pending orders
+- Approve/reject orders
+- Receive payments
+
+
+═══════════════════════════════════════════════════════════
+  DONE! Shan is ready to sell hens! 🎉
+═══════════════════════════════════════════════════════════
