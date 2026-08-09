@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, cp, readdir } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -118,6 +118,17 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // Vercel's Node.js zero-config detection only recognizes a fixed list of
+  // entrypoint filenames (app/index/server .{js,cjs,mjs,ts,cts,mts}, at the
+  // root or under src/) - dist/index.mjs isn't in that list, so it was never
+  // going to be found there. It also doesn't consult package.json's "start"
+  // script for this. Mirroring the build to root-level server.mjs (a name
+  // that IS in the list) makes Vercel find our real, bundled server instead
+  // of falling back to compiling src/app.ts directly (unbundled, broken).
+  for (const file of await readdir(distDir)) {
+    await cp(path.join(distDir, file), path.join(artifactDir, file.replace(/^index\./, "server.")));
+  }
 }
 
 buildAll().catch((err) => {

@@ -1,10 +1,17 @@
-# Vercel detects the package.json "start" script (node dist/index.mjs) and
-# runs this as a persistent Node.js server, not serverless /api functions -
-# so dist/ (pre-built, committed directly like a normal deploy artifact) must
-# stay visible. Everything else here is genuinely unused at runtime.
-_vercel-src
-build-vercel.mjs
+# Vercel's Node.js zero-config detection only recognizes a fixed list of
+# entrypoint filenames: app|index|server .{js,cjs,mjs,ts,cts,mts}, at the
+# root or under src/. It picks whichever of those it finds FIRST - it does
+# NOT consult package.json's "start" script. server.mjs (root, committed,
+# pre-built by build.mjs) is the one we want it to find. Everything below is
+# excluded specifically so nothing else in that search list is visible -
+# src/app.ts kept getting found and compiled unbundled instead, which is the
+# exact bug (directory-import crash) server.mjs exists to avoid.
+src
+dist
 api
+_vercel-src
+build.mjs
+build-vercel.mjs
 *.md
 *.txt
 add-buyer-ali.js

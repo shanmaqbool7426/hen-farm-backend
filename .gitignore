@@ -3,10 +3,11 @@ node_modules
 
 # compiled output
 *.tsbuildinfo
-# dist/ and api/_lib/ are committed on purpose - Vercel's build command has
-# repeatedly failed to actually run for this project, so the working, built
-# output needs to already exist in the repo, not be generated fresh on every
-# deploy.
+# dist/, api/_lib/, and the root-level server.mjs + siblings are all
+# committed on purpose - Vercel's build command has repeatedly failed to
+# actually run for this project, so the working, built output needs to
+# already exist in the repo, not be generated fresh on every deploy.
+# server.mjs specifically is what Vercel actually runs (see .vercelignore).
 
 # secrets - real DB credentials live here, never commit
 .env
