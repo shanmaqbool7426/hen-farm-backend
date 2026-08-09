@@ -1,15 +1,10 @@
-# The deployed function (api/handler.js + api/_lib/*) is a pre-built,
-# self-contained bundle committed directly to the repo - Vercel's own build
-# command has repeatedly failed to run reliably for this project, and Vercel
-# also kept auto-discovering _vercel-src/[...path].ts as its own (unbundled,
-# broken) function despite the underscore prefix. Excluding all of this from
-# the deployment entirely removes any chance of that happening again - none
-# of it is needed at runtime anyway, since the bundle has everything inlined.
+# Vercel detects the package.json "start" script (node dist/index.mjs) and
+# runs this as a persistent Node.js server, not serverless /api functions -
+# so dist/ (pre-built, committed directly like a normal deploy artifact) must
+# stay visible. Everything else here is genuinely unused at runtime.
 _vercel-src
 build-vercel.mjs
-build.mjs
-src
-dist
+api
 *.md
 *.txt
 add-buyer-ali.js
