@@ -46,10 +46,12 @@ var logger = pino({
 });
 
 // src/db/mongoose.ts
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch (e) {
-  logger.warn({ error: e }, "Failed to override DNS servers - SRV lookups may fail on some networks");
+if (process.platform === "win32") {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch (e) {
+    logger.warn({ error: e }, "Failed to override DNS servers - SRV lookups may fail on some networks");
+  }
 }
 var isProduction2 = process.env.NODE_ENV === "production";
 var RETRY_DELAYS_MS = [2e3, 5e3, 1e4];

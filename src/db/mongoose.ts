@@ -7,10 +7,16 @@ import { logger } from '../lib/logger';
 // Node driver resolves SRV/TXT records via the global `dns` module directly
 // (it doesn't accept a custom resolver instance), so this has to be a process-
 // wide override rather than something scoped to just this connection.
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {
-  logger.warn({ error: e }, 'Failed to override DNS servers - SRV lookups may fail on some networks');
+// Windows-only: cloud platforms (Vercel, Railway, etc.) run Linux and don't
+// have this ISP-DNS problem - forcing custom DNS servers there risks the
+// opposite failure, since sandboxed network environments often block outbound
+// queries to arbitrary DNS servers, which hangs SRV resolution indefinitely.
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (e) {
+    logger.warn({ error: e }, 'Failed to override DNS servers - SRV lookups may fail on some networks');
+  }
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
