@@ -3,12 +3,9 @@ import HenHolding from '../models/HenHolding';
 import Transaction from '../models/Transaction';
 import { logger } from '../lib/logger';
 
-// TEMPORARY FOR TESTING - production behavior is "at most once per calendar
-// day" (compares lastEggCreditDate's date string to today's). For fast
-// testing this is swapped to "at most once per CREDIT_INTERVAL_MS", checked
-// on a matching short setInterval below. Revert both to the daily/hourly
-// versions before going back to production (see git history for the old code).
-const CREDIT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+// At most once per calendar day per holding, checked hourly so a batch that
+// starts laying partway through the day still gets credited promptly.
+const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // Credits each real hen batch's natural egg output to its owner's egg stock,
 // and retires batches once their 65-day productive life ends. This is NOT a
@@ -25,12 +22,14 @@ export async function processDailyEggs() {
       expiresAt: { $gt: now },
     });
 
+    const today = now.toISOString().split('T')[0];
+
     let credited = 0;
     for (const holding of layingHoldings) {
-      const elapsedSinceLastCredit = holding.lastEggCreditDate
-        ? now.getTime() - holding.lastEggCreditDate.getTime()
-        : Infinity;
-      if (elapsedSinceLastCredit < CREDIT_INTERVAL_MS) continue;
+      const lastCreditDate = holding.lastEggCreditDate
+        ? holding.lastEggCreditDate.toISOString().split('T')[0]
+        : null;
+      if (lastCreditDate === today) continue;
 
       await User.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
@@ -72,7 +71,7 @@ export async function processDailyEggs() {
 }
 
 export function startDailyEggsJob() {
-  logger.info('Daily egg yield job scheduler started (TEST MODE: every 2 min)');
+  logger.info('Daily egg yield job scheduler started');
   processDailyEggs();
-  setInterval(processDailyEggs, CREDIT_INTERVAL_MS);
+  setInterval(processDailyEggs, CHECK_INTERVAL_MS);
 }

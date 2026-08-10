@@ -1181,7 +1181,7 @@ var admin_default = router5;
 import { Router as Router4 } from "express";
 
 // src/jobs/daily-eggs.ts
-var CREDIT_INTERVAL_MS = 2 * 60 * 1e3;
+var CHECK_INTERVAL_MS = 60 * 60 * 1e3;
 async function processDailyEggs() {
   const now = /* @__PURE__ */ new Date();
   try {
@@ -1190,10 +1190,11 @@ async function processDailyEggs() {
       layingStartsAt: { $lte: now },
       expiresAt: { $gt: now }
     });
+    const today = now.toISOString().split("T")[0];
     let credited = 0;
     for (const holding of layingHoldings) {
-      const elapsedSinceLastCredit = holding.lastEggCreditDate ? now.getTime() - holding.lastEggCreditDate.getTime() : Infinity;
-      if (elapsedSinceLastCredit < CREDIT_INTERVAL_MS) continue;
+      const lastCreditDate = holding.lastEggCreditDate ? holding.lastEggCreditDate.toISOString().split("T")[0] : null;
+      if (lastCreditDate === today) continue;
       await User_default.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
       await holding.save();
@@ -1231,9 +1232,9 @@ async function processDailyEggs() {
   }
 }
 function startDailyEggsJob() {
-  logger.info("Daily egg yield job scheduler started (TEST MODE: every 2 min)");
+  logger.info("Daily egg yield job scheduler started");
   processDailyEggs();
-  setInterval(processDailyEggs, CREDIT_INTERVAL_MS);
+  setInterval(processDailyEggs, CHECK_INTERVAL_MS);
 }
 
 // src/routes/cron.ts
