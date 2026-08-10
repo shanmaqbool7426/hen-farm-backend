@@ -27,7 +27,20 @@ async function buildAll() {
     // Examples of unbundleable packages:
     // - uses native modules and loads them dynamically (e.g. sharp)
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
+    // - Vercel's "persistent Node server" deployment mode statically scans
+    //   the entrypoint file's source text for a literal `import express`/
+    //   `require('express')` to confirm it's really an Express app before
+    //   accepting it - a fully-inlined bundle doesn't have that literal
+    //   text anymore, so express (and its close friends) must stay external
+    //   here and get resolved from node_modules at runtime instead.
     external: [
+      "express",
+      "cors",
+      "cookie-parser",
+      "mongoose",
+      "jsonwebtoken",
+      "pino",
+      "pino-http",
       "*.node",
       "sharp",
       "better-sqlite3",
