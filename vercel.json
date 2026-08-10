@@ -1,3 +1,9 @@
 {
-  "buildCommand": "echo 'no build needed - server.mjs is a pre-built, committed bundle'"
+  "buildCommand": "echo 'no build needed - server.mjs is a pre-built, committed bundle'",
+  "crons": [
+    {
+      "path": "/api/cron/daily-eggs",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
