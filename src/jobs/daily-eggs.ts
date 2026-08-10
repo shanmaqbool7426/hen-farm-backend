@@ -3,9 +3,8 @@ import HenHolding from '../models/HenHolding';
 import Transaction from '../models/Transaction';
 import { logger } from '../lib/logger';
 
-// At most once per calendar day per holding, checked hourly so a batch that
-// starts laying partway through the day still gets credited promptly.
-const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const getYieldIntervalMs = () => (Number(process.env.EGG_YIELD_INTERVAL_SEC) || 86400) * 1000;
+const getCheckIntervalMs = () => (Number(process.env.EGG_CHECK_INTERVAL_SEC) || 3600) * 1000;
 
 // Credits each real hen batch's natural egg output to its owner's egg stock,
 // and retires batches once their 65-day productive life ends. This is NOT a
@@ -22,14 +21,23 @@ export async function processDailyEggs() {
       expiresAt: { $gt: now },
     });
 
+    const yieldIntervalMs = getYieldIntervalMs();
+    const isCustomShortInterval = yieldIntervalMs < 24 * 60 * 60 * 1000;
     const today = now.toISOString().split('T')[0];
 
     let credited = 0;
     for (const holding of layingHoldings) {
-      const lastCreditDate = holding.lastEggCreditDate
-        ? holding.lastEggCreditDate.toISOString().split('T')[0]
-        : null;
-      if (lastCreditDate === today) continue;
+      if (isCustomShortInterval) {
+        const lastCreditTime = holding.lastEggCreditDate
+          ? holding.lastEggCreditDate.getTime()
+          : 0;
+        if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
+      } else {
+        const lastCreditDate = holding.lastEggCreditDate
+          ? holding.lastEggCreditDate.toISOString().split('T')[0]
+          : null;
+        if (lastCreditDate === today) continue;
+      }
 
       await User.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
@@ -71,7 +79,11 @@ export async function processDailyEggs() {
 }
 
 export function startDailyEggsJob() {
-  logger.info('Daily egg yield job scheduler started');
+  const checkInterval = getCheckIntervalMs();
+  logger.info({
+    yieldIntervalMs: getYieldIntervalMs(),
+    checkIntervalMs: checkInterval
+  }, 'Daily egg yield job scheduler started');
   processDailyEggs();
-  setInterval(processDailyEggs, CHECK_INTERVAL_MS);
+  setInterval(processDailyEggs, checkInterval);
 }

@@ -26,7 +26,9 @@ import app, { connectDB, startDailyEggsJob } from "./app";
 import { logger } from "./lib/logger";
 
 // Connect to MongoDB using process.env.MONGODB_URI
-connectDB();
+connectDB().catch((err) => {
+  logger.error({ err }, "Initial MongoDB connection attempt failed");
+});
 
 // Start daily eggs job
 startDailyEggsJob();

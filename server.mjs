@@ -89,7 +89,7 @@ async function attemptConnect(uri) {
     }
   }
 }
-async function connectDB() {
+async function connectDB2() {
   if (mongoose.connection.readyState === 1) return;
   if (connectPromise) return connectPromise;
   const MONGODB_URI = process.env.MONGODB_URI;
@@ -97,8 +97,9 @@ async function connectDB() {
     lastConnectionError = "MONGODB_URI not set in environment";
     usingInMemoryFallback = true;
     if (isProduction2) {
-      logger.error("MONGODB_URI not set in environment - refusing to start in production without a real database");
-      process.exit(1);
+      const errMsg = "MONGODB_URI not set in environment - production requires a real database";
+      logger.error(errMsg);
+      throw new Error(errMsg);
     }
     logger.warn("MONGODB_URI not set in environment - running with in-memory fallback (dev only)");
     return;
@@ -107,8 +108,8 @@ async function connectDB() {
     const message = error instanceof Error ? error.message : String(error);
     lastConnectionError = message;
     if (isProduction2) {
-      logger.error({ error: message }, "\u274C MongoDB connection failed after all retries - exiting (production requires a real database, no silent in-memory fallback)");
-      process.exit(1);
+      logger.error({ error: message }, "\u274C MongoDB connection failed after all retries - production requires a real database");
+      throw error;
     }
     usingInMemoryFallback = true;
     logger.warn({ error: message }, "\u26A0\uFE0F  MongoDB connection failed after all retries - continuing with IN-MEMORY data (dev only, nothing will persist)");
@@ -1183,7 +1184,8 @@ var admin_default = router5;
 import { Router as Router4 } from "express";
 
 // src/jobs/daily-eggs.ts
-var CHECK_INTERVAL_MS = 60 * 60 * 1e3;
+var getYieldIntervalMs = () => (Number(process.env.EGG_YIELD_INTERVAL_SEC) || 86400) * 1e3;
+var getCheckIntervalMs = () => (Number(process.env.EGG_CHECK_INTERVAL_SEC) || 3600) * 1e3;
 async function processDailyEggs() {
   const now = /* @__PURE__ */ new Date();
   try {
@@ -1192,11 +1194,18 @@ async function processDailyEggs() {
       layingStartsAt: { $lte: now },
       expiresAt: { $gt: now }
     });
+    const yieldIntervalMs = getYieldIntervalMs();
+    const isCustomShortInterval = yieldIntervalMs < 24 * 60 * 60 * 1e3;
     const today = now.toISOString().split("T")[0];
     let credited = 0;
     for (const holding of layingHoldings) {
-      const lastCreditDate = holding.lastEggCreditDate ? holding.lastEggCreditDate.toISOString().split("T")[0] : null;
-      if (lastCreditDate === today) continue;
+      if (isCustomShortInterval) {
+        const lastCreditTime = holding.lastEggCreditDate ? holding.lastEggCreditDate.getTime() : 0;
+        if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
+      } else {
+        const lastCreditDate = holding.lastEggCreditDate ? holding.lastEggCreditDate.toISOString().split("T")[0] : null;
+        if (lastCreditDate === today) continue;
+      }
       await User_default.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
       await holding.save();
@@ -1234,9 +1243,13 @@ async function processDailyEggs() {
   }
 }
 function startDailyEggsJob() {
-  logger.info("Daily egg yield job scheduler started");
+  const checkInterval = getCheckIntervalMs();
+  logger.info({
+    yieldIntervalMs: getYieldIntervalMs(),
+    checkIntervalMs: checkInterval
+  }, "Daily egg yield job scheduler started");
   processDailyEggs();
-  setInterval(processDailyEggs, CHECK_INTERVAL_MS);
+  setInterval(processDailyEggs, checkInterval);
 }
 
 // src/routes/cron.ts
@@ -1291,6 +1304,21 @@ app.use(
 app.use(cors());
 app.use(express3.json());
 app.use(express3.urlencoded({ extended: true }));
+app.use(async (req, res, next) => {
+  const isProduction3 = process.env.NODE_ENV === "production";
+  if (isProduction3) {
+    try {
+      await connectDB();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({
+        success: false,
+        error: `Database connection failed: ${message}. Make sure MONGODB_URI is set correctly in Vercel environment variables and your database network settings whitelist Vercel IPs (0.0.0.0/0).`
+      });
+    }
+  }
+  next();
+});
 app.use("/api", routes_default);
 app.get("/", (_req, res) => {
   res.json({ message: "HenFarm API - see /api/healthz" });
@@ -1316,7 +1344,9 @@ try {
 } catch (err) {
   console.warn("[env] No .env file found \u2014 using system environment variables");
 }
-connectDB();
+connectDB2().catch((err) => {
+  logger.error({ err }, "Initial MongoDB connection attempt failed");
+});
 startDailyEggsJob();
 var rawPort = process.env["PORT"] || "3000";
 var port = Number(rawPort);

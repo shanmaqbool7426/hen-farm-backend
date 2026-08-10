@@ -77,8 +77,9 @@ export async function connectDB() {
     lastConnectionError = 'MONGODB_URI not set in environment';
     usingInMemoryFallback = true;
     if (isProduction) {
-      logger.error('MONGODB_URI not set in environment - refusing to start in production without a real database');
-      process.exit(1);
+      const errMsg = 'MONGODB_URI not set in environment - production requires a real database';
+      logger.error(errMsg);
+      throw new Error(errMsg);
     }
     logger.warn('MONGODB_URI not set in environment - running with in-memory fallback (dev only)');
     return;
@@ -89,8 +90,8 @@ export async function connectDB() {
       const message = error instanceof Error ? error.message : String(error);
       lastConnectionError = message;
       if (isProduction) {
-        logger.error({ error: message }, '❌ MongoDB connection failed after all retries - exiting (production requires a real database, no silent in-memory fallback)');
-        process.exit(1);
+        logger.error({ error: message }, '❌ MongoDB connection failed after all retries - production requires a real database');
+        throw error;
       }
       usingInMemoryFallback = true;
       logger.warn({ error: message }, '⚠️  MongoDB connection failed after all retries - continuing with IN-MEMORY data (dev only, nothing will persist)');

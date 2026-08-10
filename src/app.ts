@@ -38,6 +38,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Ensure database is connected in production
+app.use(async (req, res, next) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
+    try {
+      await connectDB();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({
+        success: false,
+        error: `Database connection failed: ${message}. Make sure MONGODB_URI is set correctly in Vercel environment variables and your database network settings whitelist Vercel IPs (0.0.0.0/0).`
+      });
+    }
+  }
+  next();
+});
+
 app.use("/api", router);
 
 // Not used by the mobile app (which only ever calls /api/*), but a plain 200
