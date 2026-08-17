@@ -197,7 +197,7 @@ router.post('/create', async (req: AuthedRequest, res: Response) => {
       return res.status(400).json({ success: false, error: 'You do not have enough eggs to sell' });
     }
 
-    const responseMinutes = dealer.dealerResponseMinutes || 30;
+    const responseMinutes = 1440; // 24 hours so orders don't prematurely expire during testing
     const order = new Order({
       orderType,
       buyerId: buyer._id.toString(),

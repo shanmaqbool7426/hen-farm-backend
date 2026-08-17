@@ -822,7 +822,7 @@ router4.post("/create", async (req, res) => {
     if (orderType === "sell-egg" && buyer.availableEggs < qty) {
       return res.status(400).json({ success: false, error: "You do not have enough eggs to sell" });
     }
-    const responseMinutes = dealer.dealerResponseMinutes || 30;
+    const responseMinutes = 1440;
     const order = new Order_default({
       orderType,
       buyerId: buyer._id.toString(),
