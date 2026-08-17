@@ -134,9 +134,18 @@ router.get('/user/:userId', requireAuth, async (req: AuthedRequest, res) => {
       return res.status(403).json({ success: false, error: 'You can only view your own account' });
     }
 
-    const user = isMongoConnected()
-      ? await User.findById(req.params.userId)
-      : inMemoryUsers.find((u) => u._id === req.params.userId);
+    let user;
+    if (isMongoConnected()) {
+      // Try findById first; if the _id is a non-ObjectId string (e.g. seeded
+      // test data), fall back to findOne which handles string _ids gracefully.
+      try {
+        user = await User.findById(req.params.userId);
+      } catch {
+        user = await User.findOne({ _id: req.params.userId });
+      }
+    } else {
+      user = inMemoryUsers.find((u) => u._id === req.params.userId);
+    }
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });

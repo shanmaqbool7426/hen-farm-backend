@@ -2,7 +2,11 @@
 // Usage: node create-admin.mjs
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shanmaqbool33_db_user:VicgUI67cdOTq8SE@formhen.47vpwct.mongodb.net/henform';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is not set. Load your .env or export it before running this script.');
+  process.exit(1);
+}
 
 const name = process.env.ADMIN_NAME || 'Admin';
 const email = process.env.ADMIN_EMAIL || 'admin@henfarm.com';

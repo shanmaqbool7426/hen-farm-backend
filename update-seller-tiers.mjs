@@ -2,7 +2,11 @@ import mongoose from 'mongoose';
 import dns from 'dns';
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const uri = 'mongodb+srv://shanmaqbool33_db_user:VicgUI67cdOTq8SE@formhen.47vpwct.mongodb.net/henformker';
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  console.error('MONGODB_URI is not set. Load your .env or export it before running this script.');
+  process.exit(1);
+}
 await mongoose.connect(uri);
 const db = mongoose.connection.db;
 

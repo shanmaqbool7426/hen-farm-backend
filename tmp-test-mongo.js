@@ -1,7 +1,11 @@
 ﻿const mongoose = require('mongoose');
 (async () => {
   try {
-    const uri = process.argv[2] || 'mongodb://shanmaqbool33_db_user:VicgUI67cdOTq8SE@ac-qc4w5l1-shard-00-00.47vpwct.mongodb.net:27017,ac-qc4w5l1-shard-00-01.47vpwct.mongodb.net:27017,ac-qc4w5l1-shard-00-02.47vpwct.mongodb.net:27017/henform?ssl=true&replicaSet=ac-qc4w5l1-shard-0&authSource=admin&retryWrites=true&w=majority';
+    const uri = process.argv[2] || process.env.MONGODB_URI;
+    if (!uri) {
+      console.error('Pass a connection string as argv[2] or set MONGODB_URI.');
+      process.exit(1);
+    }
     console.log('Attempting to connect to:', uri);
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, socketTimeoutMS: 45000 });
     console.log('Mongoose connected');

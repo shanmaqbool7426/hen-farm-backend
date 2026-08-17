@@ -4,7 +4,11 @@ import crypto from 'crypto';
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const MONGODB_URI = 'mongodb+srv://shanmaqbool33_db_user:VicgUI67cdOTq8SE@formhen.47vpwct.mongodb.net/henformker';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is not set. Load your .env or export it before running this script.');
+  process.exit(1);
+}
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');

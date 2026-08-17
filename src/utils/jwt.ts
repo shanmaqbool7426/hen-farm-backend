@@ -8,7 +8,10 @@ export interface AuthTokenPayload {
 function getSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error('JWT_SECRET is not set - refusing to sign or verify tokens');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is not set - refusing to sign or verify tokens');
+    }
+    return 'dev-secret-key-12345';
   }
   return secret;
 }
