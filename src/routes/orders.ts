@@ -87,10 +87,34 @@ async function attachHenExpiry(order: any) {
   return { status, daysRemaining, expiresAt: holding.expiresAt };
 }
 
+async function safeFindUser(id: string) {
+  if (!id) return null;
+  try {
+    const user = await User.findById(id);
+    if (user) return user;
+  } catch {}
+  try {
+    return await User.findOne({ _id: id });
+  } catch {}
+  return null;
+}
+
+async function safeFindOrder(id: string) {
+  if (!id) return null;
+  try {
+    const order = await Order.findById(id);
+    if (order) return order;
+  } catch {}
+  try {
+    return await Order.findOne({ _id: id });
+  } catch {}
+  return null;
+}
+
 async function hydrateOrder(order: any) {
   const [buyer, seller, henExpiry] = await Promise.all([
-    User.findById(order.buyerId),
-    User.findById(order.sellerId),
+    safeFindUser(order.buyerId),
+    safeFindUser(order.sellerId),
     attachHenExpiry(order),
   ]);
   const plain = order.toObject ? order.toObject() : { ...order };
@@ -146,8 +170,8 @@ router.post('/create', async (req: AuthedRequest, res: Response) => {
     }
 
     const [buyer, dealer] = await Promise.all([
-      User.findById(normalUserId),
-      User.findById(selectedDealerId),
+      safeFindUser(normalUserId),
+      safeFindUser(selectedDealerId),
     ]);
 
     if (!buyer || !dealer) {
@@ -343,7 +367,7 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
   try {
     const { orderId } = req.params;
 
-    const order = await Order.findById(orderId);
+    const order = await safeFindOrder(orderId);
     if (!order) {
       return res.status(404).json({ success: false, error: 'Request not found' });
     }
@@ -367,8 +391,8 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
     }
 
     const [buyer, dealer] = await Promise.all([
-      User.findById(order.buyerId),
-      User.findById(order.sellerId),
+      safeFindUser(order.buyerId),
+      safeFindUser(order.sellerId),
     ]);
 
     if (!buyer || !dealer || !isSeller(dealer)) {
@@ -432,7 +456,7 @@ router.post('/reject/:orderId', async (req: AuthedRequest, res: Response) => {
     const { orderId } = req.params;
     const { rejectionReason } = req.body;
 
-    const order = await Order.findById(orderId);
+    const order = await safeFindOrder(orderId);
     if (!order) {
       return res.status(404).json({ success: false, error: 'Request not found' });
     }

@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword, isLegacyPassword } from '../utils/passwor
 import { signToken } from '../utils/jwt';
 import { requireAuth, type AuthedRequest } from '../middlewares/auth';
 import { inMemoryUsers } from '../lib/inMemoryStore';
+import { connectDB } from '../db/mongoose';
 
 const router = Router();
 const isMongoConnected = () => mongoose.connection.readyState === 1;
@@ -23,6 +24,8 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, error: 'Email and password required' });
     }
+
+    try { await connectDB(); } catch {}
 
     const user = isMongoConnected()
       ? await User.findOne({ $or: [{ email }, { phone: email }] })

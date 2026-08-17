@@ -329,6 +329,10 @@ router2.post("/login", async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, error: "Email and password required" });
     }
+    try {
+      await connectDB2();
+    } catch {
+    }
     const user = isMongoConnected() ? await User_default.findOne({ $or: [{ email }, { phone: email }] }) : inMemoryUsers.find((u) => u.email === email || u.phone === email);
     if (!user || !user.password || !verifyPassword(password, user.password)) {
       return res.status(401).json({ success: false, error: "Invalid email or password" });
@@ -725,10 +729,36 @@ async function attachHenExpiry(order) {
   const daysRemaining = Math.ceil((status === "incubating" ? layingStartsAt - now : expiresAt - now) / DAY_MS);
   return { status, daysRemaining, expiresAt: holding.expiresAt };
 }
+async function safeFindUser(id) {
+  if (!id) return null;
+  try {
+    const user = await User_default.findById(id);
+    if (user) return user;
+  } catch {
+  }
+  try {
+    return await User_default.findOne({ _id: id });
+  } catch {
+  }
+  return null;
+}
+async function safeFindOrder(id) {
+  if (!id) return null;
+  try {
+    const order = await Order_default.findById(id);
+    if (order) return order;
+  } catch {
+  }
+  try {
+    return await Order_default.findOne({ _id: id });
+  } catch {
+  }
+  return null;
+}
 async function hydrateOrder(order) {
   const [buyer, seller, henExpiry] = await Promise.all([
-    User_default.findById(order.buyerId),
-    User_default.findById(order.sellerId),
+    safeFindUser(order.buyerId),
+    safeFindUser(order.sellerId),
     attachHenExpiry(order)
   ]);
   const plain = order.toObject ? order.toObject() : { ...order };
@@ -772,8 +802,8 @@ router4.post("/create", async (req, res) => {
       });
     }
     const [buyer, dealer] = await Promise.all([
-      User_default.findById(normalUserId),
-      User_default.findById(selectedDealerId)
+      safeFindUser(normalUserId),
+      safeFindUser(selectedDealerId)
     ]);
     if (!buyer || !dealer) {
       return res.status(404).json({ success: false, error: "User or dealer not found" });
@@ -937,7 +967,7 @@ router4.get("/pending-approvals/:sellerId", async (req, res) => {
 router4.post("/approve/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
-    const order = await Order_default.findById(orderId);
+    const order = await safeFindOrder(orderId);
     if (!order) {
       return res.status(404).json({ success: false, error: "Request not found" });
     }
@@ -954,8 +984,8 @@ router4.post("/approve/:orderId", async (req, res) => {
       return res.status(400).json({ success: false, error: "Request expired" });
     }
     const [buyer, dealer] = await Promise.all([
-      User_default.findById(order.buyerId),
-      User_default.findById(order.sellerId)
+      safeFindUser(order.buyerId),
+      safeFindUser(order.sellerId)
     ]);
     if (!buyer || !dealer || !isSeller(dealer)) {
       return res.status(404).json({ success: false, error: "User or dealer not found" });
@@ -1001,7 +1031,7 @@ router4.post("/reject/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
     const { rejectionReason } = req.body;
-    const order = await Order_default.findById(orderId);
+    const order = await safeFindOrder(orderId);
     if (!order) {
       return res.status(404).json({ success: false, error: "Request not found" });
     }
@@ -1317,15 +1347,14 @@ app.use(cors());
 app.use(express3.json());
 app.use(express3.urlencoded({ extended: true }));
 app.use(async (req, res, next) => {
-  const isProduction3 = process.env.NODE_ENV === "production";
-  if (isProduction3) {
-    try {
-      await connectDB();
-    } catch (error) {
+  try {
+    await connectDB();
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
       const message = error instanceof Error ? error.message : String(error);
       return res.status(500).json({
         success: false,
-        error: `Database connection failed: ${message}. Make sure MONGODB_URI is set correctly in Vercel environment variables and your database network settings whitelist Vercel IPs (0.0.0.0/0).`
+        error: `Database connection failed: ${message}. Make sure MONGODB_URI is set correctly.`
       });
     }
   }
