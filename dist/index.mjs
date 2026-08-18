@@ -1348,7 +1348,7 @@ app.use(express3.json());
 app.use(express3.urlencoded({ extended: true }));
 app.use(async (req, res, next) => {
   try {
-    await connectDB();
+    await connectDB2();
   } catch (error) {
     if (process.env.NODE_ENV === "production") {
       const message = error instanceof Error ? error.message : String(error);
