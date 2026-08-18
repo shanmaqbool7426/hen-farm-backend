@@ -4,7 +4,8 @@ import pinoHttpImport from "pino-http";
 import router from "./routes/index";
 import { logger } from "./lib/logger";
 // connectDB and startDailyEggsJob are initialized in index.ts AFTER .env is loaded
-export { connectDB } from "./db/mongoose";
+import { connectDB } from "./db/mongoose";
+export { connectDB };
 export { startDailyEggsJob } from "./jobs/daily-eggs";
 
 // pino-http is CommonJS; local esbuild and Vercel's own TypeScript build
