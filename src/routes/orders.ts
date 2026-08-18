@@ -409,6 +409,11 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
       // confirms the dealer received it and is handing over the real hens.
       dealer.availableHens -= order.quantity;
       buyer.hensOwned += order.quantity;
+      // Day-1 egg yield is credited right now, at purchase time, instead of
+      // making the buyer wait for the next daily cron run. lastEggCreditDate
+      // below is set to this same moment so the daily job never double-credits
+      // this holding on the same calendar day.
+      buyer.availableEggs += order.quantity;
 
       await Promise.all([buyer.save(), dealer.save()]);
 
@@ -422,6 +427,15 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
         layingStartsAt,
         // 65 full days of laying starting day 1 (no incubation wait)
         expiresAt: new Date(layingStartsAt.getTime() + PRODUCTIVE_DAYS * 24 * 60 * 60 * 1000),
+        lastEggCreditDate: purchasedAt,
+      }).save();
+
+      await new Transaction({
+        userId: buyer._id.toString(),
+        type: 'hen-egg-yield',
+        quantity: order.quantity,
+        description: `${order.quantity} egg${order.quantity > 1 ? 's' : ''} credited - first day's yield from your new hens`,
+        metadata: { orderId: order._id },
       }).save();
 
       // One-time referral reward, only on the buyer's first-ever completed hen order.

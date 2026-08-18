@@ -996,6 +996,7 @@ router4.post("/approve/:orderId", async (req, res) => {
       }
       dealer.availableHens -= order.quantity;
       buyer.hensOwned += order.quantity;
+      buyer.availableEggs += order.quantity;
       await Promise.all([buyer.save(), dealer.save()]);
       const purchasedAt = /* @__PURE__ */ new Date();
       const layingStartsAt = new Date(purchasedAt.getTime() + INCUBATION_DAYS * 24 * 60 * 60 * 1e3);
@@ -1006,7 +1007,15 @@ router4.post("/approve/:orderId", async (req, res) => {
         purchasedAt,
         layingStartsAt,
         // 65 full days of laying starting day 1 (no incubation wait)
-        expiresAt: new Date(layingStartsAt.getTime() + PRODUCTIVE_DAYS * 24 * 60 * 60 * 1e3)
+        expiresAt: new Date(layingStartsAt.getTime() + PRODUCTIVE_DAYS * 24 * 60 * 60 * 1e3),
+        lastEggCreditDate: purchasedAt
+      }).save();
+      await new Transaction_default({
+        userId: buyer._id.toString(),
+        type: "hen-egg-yield",
+        quantity: order.quantity,
+        description: `${order.quantity} egg${order.quantity > 1 ? "s" : ""} credited - first day's yield from your new hens`,
+        metadata: { orderId: order._id }
       }).save();
       await applyReferralRewardsOnFirstOrder(buyer, order);
     } else if (order.orderType === "sell-egg") {
