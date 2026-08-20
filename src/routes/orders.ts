@@ -136,6 +136,7 @@ router.post('/create', async (req: AuthedRequest, res: Response) => {
       pricePerUnit,
       paymentMethod,
       paymentProof,
+      paymentProofImage,
       receiverAccount,
       buyerNotes,
     } = req.body;
@@ -216,7 +217,8 @@ router.post('/create', async (req: AuthedRequest, res: Response) => {
           ? receiverAccount || buyer.easyPaisaAccount || buyer.jazzCashAccount || buyer.bankAccountNumber || ''
           : '',
       paymentProof,
-      paymentProofUploaded: Boolean(paymentProof),
+      paymentProofImage: paymentProofImage || '',
+      paymentProofUploaded: Boolean(paymentProof) || Boolean(paymentProofImage),
       whatsappNumber: dealer.whatsappNumber || dealer.phone,
       buyerNotes,
       status: 'pending',

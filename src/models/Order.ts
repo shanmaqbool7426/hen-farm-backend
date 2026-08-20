@@ -16,6 +16,7 @@ export interface IOrder extends Document {
   buyerPaymentAccount?: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled' | 'expired';
   paymentProof?: string;
+  paymentProofImage?: string;   // Cloudinary image URL of payment screenshot
   paymentProofUploaded: boolean;
   whatsappNumber: string;
   createdAt: Date;
@@ -57,6 +58,7 @@ const OrderSchema: Schema = new Schema({
     index: true,
   },
   paymentProof: { type: String },
+  paymentProofImage: { type: String },   // Cloudinary URL of payment screenshot
   paymentProofUploaded: { type: Boolean, default: false },
   whatsappNumber: { type: String, required: true },
   approvedAt: { type: Date },
