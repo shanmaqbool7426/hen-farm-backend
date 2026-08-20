@@ -1,4 +1,5 @@
 {
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "echo 'no build needed - server.mjs is a pre-built, committed bundle'",
   "crons": [
     {
