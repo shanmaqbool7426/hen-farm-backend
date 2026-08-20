@@ -429,7 +429,9 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
         layingStartsAt,
         // 65 full days of laying starting day 1 (no incubation wait)
         expiresAt: new Date(layingStartsAt.getTime() + PRODUCTIVE_DAYS * 24 * 60 * 60 * 1000),
-        lastEggCreditDate: purchasedAt,
+        // Set lastEggCreditDate to end of today (UTC midnight) so the daily
+        // cron job never double-credits on the same calendar day as purchase.
+        lastEggCreditDate: new Date(new Date().toISOString().split('T')[0] + 'T23:59:59.999Z'),
       }).save();
 
       await new Transaction({

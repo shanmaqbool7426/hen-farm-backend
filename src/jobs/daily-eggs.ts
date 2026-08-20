@@ -83,7 +83,13 @@ export function startDailyEggsJob() {
   logger.info({
     yieldIntervalMs: getYieldIntervalMs(),
     checkIntervalMs: checkInterval
-  }, 'Daily egg yield job scheduler started');
-  processDailyEggs();
-  setInterval(processDailyEggs, checkInterval);
+  }, 'Daily egg yield job scheduler started - waiting for scheduled trigger');
+  // NOTE: We do NOT call processDailyEggs() immediately on server start.
+  // Vercel serverless restarts on every cold start which would credit eggs
+  // on every restart. Instead we rely solely on the Vercel cron job
+  // (0 7 * * * = 12:00 PM PST daily) via /api/cron/daily-eggs route.
+  // The setInterval below is only a fallback for non-Vercel local dev.
+  if (process.env.NODE_ENV === 'development') {
+    setInterval(processDailyEggs, checkInterval);
+  }
 }
