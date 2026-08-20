@@ -12,7 +12,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 // src/app.ts
-import express3 from "express";
+import express4 from "express";
 import cors from "cors";
 import pinoHttpImport from "pino-http";
 
@@ -89,7 +89,7 @@ async function attemptConnect(uri) {
     }
   }
 }
-async function connectDB2() {
+async function connectDB() {
   if (mongoose.connection.readyState === 1) return;
   if (connectPromise) return connectPromise;
   const MONGODB_URI = process.env.MONGODB_URI;
@@ -330,7 +330,7 @@ router2.post("/login", async (req, res) => {
       return res.status(400).json({ success: false, error: "Email and password required" });
     }
     try {
-      await connectDB2();
+      await connectDB();
     } catch {
     }
     const user = isMongoConnected() ? await User_default.findOne({ $or: [{ email }, { phone: email }] }) : inMemoryUsers.find((u) => u.email === email || u.phone === email);
@@ -618,6 +618,8 @@ var OrderSchema = new Schema2({
     index: true
   },
   paymentProof: { type: String },
+  paymentProofImage: { type: String },
+  // Cloudinary URL of payment screenshot
   paymentProofUploaded: { type: Boolean, default: false },
   whatsappNumber: { type: String, required: true },
   approvedAt: { type: Date },
@@ -779,6 +781,7 @@ router4.post("/create", async (req, res) => {
       pricePerUnit,
       paymentMethod,
       paymentProof,
+      paymentProofImage,
       receiverAccount,
       buyerNotes
     } = req.body;
@@ -838,7 +841,8 @@ router4.post("/create", async (req, res) => {
       paymentAccount: dealer.easyPaisaAccount || dealer.jazzCashAccount || dealer.bankAccountNumber || "",
       buyerPaymentAccount: orderType === "sell-egg" ? receiverAccount || buyer.easyPaisaAccount || buyer.jazzCashAccount || buyer.bankAccountNumber || "" : "",
       paymentProof,
-      paymentProofUploaded: Boolean(paymentProof),
+      paymentProofImage: paymentProofImage || "",
+      paymentProofUploaded: Boolean(paymentProof) || Boolean(paymentProofImage),
       whatsappNumber: dealer.whatsappNumber || dealer.phone,
       buyerNotes,
       status: "pending",
@@ -1320,19 +1324,46 @@ router6.get("/daily-eggs", async (req, res) => {
 });
 var cron_default = router6;
 
+// src/routes/upload.ts
+import express3 from "express";
+import crypto from "crypto";
+var router7 = express3.Router();
+router7.post("/sign", requireAuth, async (req, res) => {
+  try {
+    const timestamp = Math.round(Date.now() / 1e3);
+    const folder = "payment-proofs";
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const signature = crypto.createHash("sha1").update(signaturePayload).digest("hex");
+    return res.json({
+      success: true,
+      signature,
+      timestamp,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      folder
+    });
+  } catch (error) {
+    console.error("Upload sign error:", error);
+    return res.status(500).json({ success: false, error: "Failed to generate upload signature" });
+  }
+});
+var upload_default = router7;
+
 // src/routes/index.ts
-var router7 = Router5();
-router7.use(health_default);
-router7.use("/auth", auth_default);
-router7.use("/marketplace", marketplace_default);
-router7.use("/orders", orders_default);
-router7.use("/admin", admin_default);
-router7.use("/cron", cron_default);
-var routes_default = router7;
+var router8 = Router5();
+router8.use(health_default);
+router8.use("/auth", auth_default);
+router8.use("/marketplace", marketplace_default);
+router8.use("/orders", orders_default);
+router8.use("/admin", admin_default);
+router8.use("/cron", cron_default);
+router8.use("/upload", upload_default);
+var routes_default = router8;
 
 // src/app.ts
 var pinoHttp = pinoHttpImport;
-var app = express3();
+var app = express4();
 app.use(
   pinoHttp({
     logger,
@@ -1353,11 +1384,11 @@ app.use(
   })
 );
 app.use(cors());
-app.use(express3.json());
-app.use(express3.urlencoded({ extended: true }));
+app.use(express4.json());
+app.use(express4.urlencoded({ extended: true }));
 app.use(async (req, res, next) => {
   try {
-    await connectDB2();
+    await connectDB();
   } catch (error) {
     if (process.env.NODE_ENV === "production") {
       const message = error instanceof Error ? error.message : String(error);
@@ -1394,7 +1425,7 @@ try {
 } catch (err) {
   console.warn("[env] No .env file found \u2014 using system environment variables");
 }
-connectDB2().catch((err) => {
+connectDB().catch((err) => {
   logger.error({ err }, "Initial MongoDB connection attempt failed");
 });
 startDailyEggsJob();

@@ -1,14 +1,8 @@
 import express, { Response } from 'express';
-import { v2 as cloudinary } from 'cloudinary';
+import crypto from 'crypto';
 import { requireAuth, type AuthedRequest } from '../middlewares/auth';
 
 const router = express.Router();
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 // POST /api/upload/sign
 // Returns a signed upload signature so the mobile app can upload directly
@@ -17,11 +11,14 @@ router.post('/sign', requireAuth, async (req: AuthedRequest, res: Response) => {
   try {
     const timestamp = Math.round(Date.now() / 1000);
     const folder = 'payment-proofs';
+    const apiSecret = process.env.CLOUDINARY_API_SECRET!;
 
-    const signature = cloudinary.utils.api_sign_request(
-      { timestamp, folder },
-      process.env.CLOUDINARY_API_SECRET!,
-    );
+    // Cloudinary signature: SHA1 of "folder=...&timestamp=...{api_secret}"
+    const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const signature = crypto
+      .createHash('sha1')
+      .update(signaturePayload)
+      .digest('hex');
 
     return res.json({
       success: true,
