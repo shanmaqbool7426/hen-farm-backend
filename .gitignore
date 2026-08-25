@@ -10,6 +10,9 @@ node_modules
 # server.mjs specifically is what Vercel actually runs (see .vercelignore).
 
 # secrets - real DB credentials live here, never commit
-.env
-.env.local
 .env.*.local
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+config.bat
