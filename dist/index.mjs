@@ -1012,7 +1012,10 @@ router4.post("/approve/:orderId", async (req, res) => {
         layingStartsAt,
         // 65 full days of laying starting day 1 (no incubation wait)
         expiresAt: new Date(layingStartsAt.getTime() + PRODUCTIVE_DAYS * 24 * 60 * 60 * 1e3),
-        lastEggCreditDate: purchasedAt
+        // Set lastEggCreditDate to tomorrow UTC midnight so the daily
+        // cron job never double-credits this holding — not even if the
+        // cron fires within seconds of purchase on the same UTC day.
+        lastEggCreditDate: new Date(Date.now() + 24 * 60 * 60 * 1e3)
       }).save();
       await new Transaction_default({
         userId: buyer._id.toString(),
@@ -1250,17 +1253,10 @@ async function processDailyEggs() {
       expiresAt: { $gt: now }
     });
     const yieldIntervalMs = getYieldIntervalMs();
-    const isCustomShortInterval = yieldIntervalMs < 24 * 60 * 60 * 1e3;
-    const today = now.toISOString().split("T")[0];
     let credited = 0;
     for (const holding of layingHoldings) {
-      if (isCustomShortInterval) {
-        const lastCreditTime = holding.lastEggCreditDate ? holding.lastEggCreditDate.getTime() : 0;
-        if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
-      } else {
-        const lastCreditDate = holding.lastEggCreditDate ? holding.lastEggCreditDate.toISOString().split("T")[0] : null;
-        if (lastCreditDate === today) continue;
-      }
+      const lastCreditTime = holding.lastEggCreditDate ? holding.lastEggCreditDate.getTime() : 0;
+      if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
       await User_default.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
       await holding.save();
@@ -1302,9 +1298,10 @@ function startDailyEggsJob() {
   logger.info({
     yieldIntervalMs: getYieldIntervalMs(),
     checkIntervalMs: checkInterval
-  }, "Daily egg yield job scheduler started");
-  processDailyEggs();
-  setInterval(processDailyEggs, checkInterval);
+  }, "Daily egg yield job scheduler started - waiting for scheduled trigger");
+  if (process.env.NODE_ENV === "development") {
+    setInterval(processDailyEggs, checkInterval);
+  }
 }
 
 // src/routes/cron.ts

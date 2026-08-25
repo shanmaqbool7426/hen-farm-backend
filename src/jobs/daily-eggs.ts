@@ -21,23 +21,18 @@ export async function processDailyEggs() {
       expiresAt: { $gt: now },
     });
 
-    const yieldIntervalMs = getYieldIntervalMs();
-    const isCustomShortInterval = yieldIntervalMs < 24 * 60 * 60 * 1000;
-    const today = now.toISOString().split('T')[0];
+    const yieldIntervalMs = getYieldIntervalMs(); // 86400000ms = 24 hours
 
     let credited = 0;
     for (const holding of layingHoldings) {
-      if (isCustomShortInterval) {
-        const lastCreditTime = holding.lastEggCreditDate
-          ? holding.lastEggCreditDate.getTime()
-          : 0;
-        if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
-      } else {
-        const lastCreditDate = holding.lastEggCreditDate
-          ? holding.lastEggCreditDate.toISOString().split('T')[0]
-          : null;
-        if (lastCreditDate === today) continue;
-      }
+      const lastCreditTime = holding.lastEggCreditDate
+        ? holding.lastEggCreditDate.getTime()
+        : 0;
+      // Only credit if at least 24 hours have passed since last credit.
+      // This replaces the fragile UTC-date-string comparison which caused
+      // double credits when purchase time and cron time were on different
+      // UTC dates (e.g. Pakistan is UTC+5, so 8pm PKT = next UTC day).
+      if (now.getTime() - lastCreditTime < yieldIntervalMs) continue;
 
       await User.updateOne({ _id: holding.userId }, { $inc: { availableEggs: holding.quantity } });
       holding.lastEggCreditDate = now;
