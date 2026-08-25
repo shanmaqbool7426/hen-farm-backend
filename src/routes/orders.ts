@@ -367,7 +367,7 @@ router.get('/pending-approvals/:sellerId', async (req: AuthedRequest, res: Respo
 
 router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
   try {
-    const { orderId } = req.params;
+    const orderId = String(req.params.orderId);
 
     const order = await safeFindOrder(orderId);
     if (!order) {
@@ -472,7 +472,7 @@ router.post('/approve/:orderId', async (req: AuthedRequest, res: Response) => {
 
 router.post('/reject/:orderId', async (req: AuthedRequest, res: Response) => {
   try {
-    const { orderId } = req.params;
+    const orderId = String(req.params.orderId);
     const { rejectionReason } = req.body;
 
     const order = await safeFindOrder(orderId);
